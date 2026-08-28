@@ -1,0 +1,8 @@
+.next/
+node_modules/
+.env
+.env.local
+.env_vibecloud
+data/orders.json
+data/*.tmp
+npm-debug.log*
