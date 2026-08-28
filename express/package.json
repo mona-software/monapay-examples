@@ -1,0 +1,13 @@
+{
+  "name": "monapay-example-express",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@monapay/node": "file:../../sdk/node",
+    "express": "latest"
+  }
+}

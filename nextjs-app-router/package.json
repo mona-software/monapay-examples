@@ -1,0 +1,14 @@
+{
+  "name": "monapay-example-nextjs-app-router",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "next dev"
+  },
+  "dependencies": {
+    "@monapay/node": "file:../../sdk/node",
+    "next": "latest",
+    "react": "latest",
+    "react-dom": "latest"
+  }
+}
