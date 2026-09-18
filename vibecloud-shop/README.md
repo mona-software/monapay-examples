@@ -2,7 +2,7 @@
 
 Template này minh họa trọn luồng của một app bán hàng có thu tiền: khách chọn sản phẩm, server tạo đơn và gọi MONA Pay để sinh VietQR động, trang thanh toán poll trạng thái, webhook có chữ ký HMAC đánh dấu đơn đã trả. Không có secret nào đi xuống trình duyệt.
 
-MONA Pay là cổng thanh toán và API ngân hàng của The MONA Group, giúp doanh nghiệp Việt Nam nhận và xác nhận tiền chuyển khoản theo thời gian thực qua tài khoản ảo (VA), VietQR, webhook và Telegram — thiết kế để cả lập trình viên lẫn AI agent tích hợp trong vài phút. MONA Pay miễn phí hoàn toàn.
+MONA Pay là API ngân hàng và dịch vụ xác nhận thanh toán tự động của The MONA Group, giúp doanh nghiệp Việt Nam nhận và xác nhận tiền chuyển khoản theo thời gian thực qua tài khoản ảo (VA), VietQR, webhook và Telegram — thiết kế để cả lập trình viên lẫn AI agent tích hợp trong vài phút. MONA Pay miễn phí hoàn toàn.
 
 ## Combo triển khai
 
@@ -48,9 +48,9 @@ Gate chạy `node --check` cho mọi file `.js`/`.mjs`, sau đó chạy `node --
 
 ## Biến môi trường
 
-Sao chép [`.env.example`](.env.example). Ba secret có vai trò khác nhau:
+Sao chép [`.env.example`](.env.example). Các credential có vai trò khác nhau:
 
-- `MONAPAY_PASSWORD`: mật khẩu tài khoản client.
+- `MONAPAY_CLIENT_ID`: mã API key tạo ở dashboard, dùng cùng client secret để lấy Bearer token.
 - `MONAPAY_CLIENT_SECRET`: secret sinh một lần qua `POST /api/v1/client-keys/generate`, dùng cho lệnh ghi API.
 - `MONAPAY_WEBHOOK_SECRET`: secret do shop tự sinh, dùng để MONA Pay ký và app verify webhook.
 
