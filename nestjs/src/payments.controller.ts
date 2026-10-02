@@ -6,11 +6,7 @@ import { OrdersService } from './orders.service';
 
 @Controller()
 export class PaymentsController {
-  private readonly monapay = new MonaPay({
-    username: process.env.MONAPAY_USERNAME!,
-    password: process.env.MONAPAY_PASSWORD!,
-    clientSecret: process.env.MONAPAY_CLIENT_SECRET,
-  });
+  private readonly monapay = MonaPay.fromEnv();
 
   constructor(private readonly orders: OrdersService) {}
 

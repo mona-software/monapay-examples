@@ -10,11 +10,7 @@ from .models import Order
 
 
 def client():
-    return MonaPay(
-        os.environ["MONAPAY_USERNAME"],
-        os.environ["MONAPAY_PASSWORD"],
-        client_secret=os.getenv("MONAPAY_CLIENT_SECRET"),
-    )
+    return MonaPay.from_env()
 
 
 @csrf_exempt

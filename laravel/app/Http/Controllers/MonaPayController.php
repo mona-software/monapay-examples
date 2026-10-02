@@ -12,11 +12,7 @@ class MonaPayController extends Controller
 {
     public function createQr(Order $order): JsonResponse
     {
-        $client = new Client(
-            (string) env('MONAPAY_USERNAME'),
-            (string) env('MONAPAY_PASSWORD'),
-            env('MONAPAY_CLIENT_SECRET') ?: null
-        );
+        $client = Client::fromEnv();
         $qr = $client->qr->generate([
             'ownerNumber' => env('MONAPAY_OWNER_NUMBER'),
             'ownerType' => env('MONAPAY_OWNER_TYPE', 'ORG'),

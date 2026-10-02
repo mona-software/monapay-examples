@@ -16,8 +16,7 @@ public class MonaPayClient {
     private final HttpClient http = HttpClient.newHttpClient();
     private final ObjectMapper json;
 
-    @Value("${MONAPAY_USERNAME}") private String username;
-    @Value("${MONAPAY_PASSWORD}") private String password;
+    @Value("${MONAPAY_CLIENT_ID}") private String clientId;
     @Value("${MONAPAY_CLIENT_SECRET}") private String clientSecret;
     @Value("${MONAPAY_OWNER_NUMBER}") private String ownerNumber;
     @Value("${MONAPAY_OWNER_TYPE:ORG}") private String ownerType;
@@ -52,8 +51,10 @@ public class MonaPayClient {
     }
 
     private String login() throws Exception {
-        String body = json.writeValueAsString(Map.of("username", username, "password", password));
-        HttpRequest request = HttpRequest.newBuilder(URI.create("https://api.monapay.vn/api/v1/client/login"))
+		String body = json.writeValueAsString(Map.of(
+			"grant_type", "client_credentials", "client_id", clientId, "client_secret", clientSecret
+		));
+		HttpRequest request = HttpRequest.newBuilder(URI.create("https://api.monapay.vn/api/v1/oauth/token"))
             .header("Content-Type", "application/json")
             .POST(HttpRequest.BodyPublishers.ofString(body))
             .build();

@@ -149,8 +149,11 @@ func verifyWebhook(body []byte, headers http.Header) string {
 }
 
 func monaPayQR(item *order) (any, error) {
-	loginBody := map[string]any{"username": os.Getenv("MONAPAY_USERNAME"), "password": os.Getenv("MONAPAY_PASSWORD")}
-	loginData, err := apiRequest(http.MethodPost, "/api/v1/client/login", loginBody, "")
+	loginBody := map[string]any{
+		"grant_type": "client_credentials", "client_id": os.Getenv("MONAPAY_CLIENT_ID"),
+		"client_secret": os.Getenv("MONAPAY_CLIENT_SECRET"),
+	}
+	loginData, err := apiRequest(http.MethodPost, "/api/v1/oauth/token", loginBody, "")
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +161,7 @@ func monaPayQR(item *order) (any, error) {
 		AccessToken string `json:"access_token"`
 	}
 	if err := json.Unmarshal(loginData, &login); err != nil || login.AccessToken == "" {
-		return nil, fmt.Errorf("response login không có access_token")
+		return nil, fmt.Errorf("response OAuth không có access_token")
 	}
 	body := map[string]any{
 		"ownerNumber": os.Getenv("MONAPAY_OWNER_NUMBER"), "ownerType": env("MONAPAY_OWNER_TYPE", "ORG"),
@@ -180,7 +183,7 @@ func apiRequest(method, path string, body any, token string) (json.RawMessage, e
 	if err != nil {
 		return nil, err
 	}
-	request, err := http.NewRequest(method, "https://api.monapay.vn"+path, bytes.NewReader(encoded))
+	request, err := http.NewRequest(method, env("MONAPAY_BASE_URL", "https://api.monapay.vn")+path, bytes.NewReader(encoded))
 	if err != nil {
 		return nil, err
 	}

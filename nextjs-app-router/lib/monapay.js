@@ -1,10 +1,6 @@
 import { MonaPay } from '@monapay/node';
 
-export const monapay = new MonaPay({
-  username: process.env.MONAPAY_USERNAME,
-  password: process.env.MONAPAY_PASSWORD,
-  clientSecret: process.env.MONAPAY_CLIENT_SECRET,
-});
+export const monapay = MonaPay.fromEnv();
 
 export function qrBody(order) {
   return {

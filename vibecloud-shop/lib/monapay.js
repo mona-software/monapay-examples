@@ -10,12 +10,9 @@ function required(name) {
 
 export function getMonaPay() {
   if (!client) {
-    client = new MonaPay({
-      baseUrl: process.env.MONAPAY_BASE_URL || 'https://api.monapay.vn',
-      username: required('MONAPAY_USERNAME'),
-      password: required('MONAPAY_PASSWORD'),
-      clientSecret: required('MONAPAY_CLIENT_SECRET'),
-    });
+    required('MONAPAY_CLIENT_ID');
+    required('MONAPAY_CLIENT_SECRET');
+    client = MonaPay.fromEnv();
   }
   return client;
 }

@@ -95,33 +95,22 @@ curl -I http://127.0.0.1
 
 Port 80 cho phép smoke test bằng IP. Trước production, trỏ domain quản lý tại Mona.Host về IP VPS, tạo lại container với `-p 127.0.0.1:3000:3000`, rồi đặt HTTPS reverse proxy trên cổng 80/443 phía trước port 3000; dùng URL HTTPS đó ở bước 4. VibeCloud chặn SMTP outbound 25/465/587, nên nếu app gửi mail hãy dùng nhà cung cấp mail có HTTP API.
 
-## 3. Đăng ký MONA Pay và sinh client key
+## 3. Tạo API key MONA Pay
 
-Tài khoản mới dùng ngay. Các lệnh ghi cần cả Bearer token và `X-Client-Secret`; client secret chỉ được trả về một lần khi sinh key:
+Đăng ký hoặc đăng nhập tại `https://my.monapay.vn`, mở API Keys và tạo key cho Bếp Gọn. Dashboard hiện `client_id` cùng `client_secret`; secret chỉ hiện một lần. Máy chủ và AI agent không dùng mật khẩu tài khoản, vì luồng đó sẽ gãy khi bật 2FA.
 
 ```bash
 BASE=https://api.monapay.vn
-MONAPAY_USERNAME='shop-cua-ban'
-MONAPAY_PASSWORD='mat-khau-dai-va-rieng'
-MONAPAY_NAME='Bep Gon Shop'
+MONAPAY_CLIENT_ID='client-id-tu-dashboard'
+MONAPAY_CLIENT_SECRET='client-secret-tu-dashboard'
 
-curl -sS -X POST "$BASE/api/v1/client/register-client" \
+TOKEN_JSON=$(curl -sS -X POST "$BASE/api/v1/oauth/token" \
   -H 'Content-Type: application/json' \
-  -d "{\"username\":\"$MONAPAY_USERNAME\",\"password\":\"$MONAPAY_PASSWORD\",\"name\":\"$MONAPAY_NAME\"}"
-
-LOGIN_JSON=$(curl -sS -X POST "$BASE/api/v1/client/login" \
-  -H 'Content-Type: application/json' \
-  -d "{\"username\":\"$MONAPAY_USERNAME\",\"password\":\"$MONAPAY_PASSWORD\"}")
-MONAPAY_TOKEN=$(printf '%s' "$LOGIN_JSON" | python3 -c 'import json,sys; print(json.load(sys.stdin)["data"]["access_token"])')
-
-KEY_JSON=$(curl -sS -X POST "$BASE/api/v1/client-keys/generate" \
-  -H "Authorization: Bearer $MONAPAY_TOKEN" \
-  -H 'Content-Type: application/json' \
-  -d '{"name":"Bep Gon VibeCloud"}')
-MONAPAY_CLIENT_SECRET=$(printf '%s' "$KEY_JSON" | python3 -c 'import json,sys; print(json.load(sys.stdin)["data"]["client_secret"])')
+  -d "{\"grant_type\":\"client_credentials\",\"client_id\":\"$MONAPAY_CLIENT_ID\",\"client_secret\":\"$MONAPAY_CLIENT_SECRET\"}")
+MONAPAY_TOKEN=$(printf '%s' "$TOKEN_JSON" | python3 -c 'import json,sys; print(json.load(sys.stdin)["data"]["access_token"])')
 ```
 
-Ghi `MONAPAY_USERNAME`, `MONAPAY_PASSWORD` và `MONAPAY_CLIENT_SECRET` vào `/opt/vibecloud-shop.env`. Điền thêm thông tin ACB/QR do dashboard MONA Pay cung cấp: owner number, owner type, merchant ID, terminal ID, VA prefix và beneficiary name. Restart container sau khi sửa env:
+Ghi `MONAPAY_CLIENT_ID` và `MONAPAY_CLIENT_SECRET` vào `/opt/vibecloud-shop.env`. Điền thêm thông tin ACB/QR do dashboard MONA Pay cung cấp: owner number, owner type, merchant ID, terminal ID, VA prefix và beneficiary name. Restart container sau khi sửa env:
 
 ```bash
 docker rm -f vibecloud-shop
@@ -157,9 +146,8 @@ set -a
 set +a
 WEBHOOK_URL='https://shop.ten-mien-cua-ban.vn/api/webhooks/monapay'
 monapay login \
-  --username "$MONAPAY_USERNAME" \
-  --password "$MONAPAY_PASSWORD" \
-  --secret "$MONAPAY_CLIENT_SECRET"
+  --client-id "$MONAPAY_CLIENT_ID" \
+  --client-secret "$MONAPAY_CLIENT_SECRET"
 monapay webhooks test \
   --url "$WEBHOOK_URL" \
   --auth HMAC_SHA256 \
@@ -170,7 +158,7 @@ Kiểm `GET /api/v1/webhook-logs?limit=5` hoặc dashboard để xác nhận HTT
 
 ## Prompt một đoạn cho Claude Code / Codex
 
-> Đọc `vibecloud_guide.md`, `DEPLOY-VIBECLOUD.md` và `.env_vibecloud` rồi deploy app bán hàng có thu tiền này trọn 5 bước: gọi đúng API `https://api.vibecloud.vn` để list package và tạo một LXC qua `POST /api/lxc`, poll `GET /api/jobs/:id` tới `succeeded`, SSH và deploy Next.js bằng Docker với volume bền vững cho JSON store, đăng ký/đăng nhập MONA Pay rồi sinh client key, cấu hình webhook HMAC public `/api/webhooks/monapay`, cuối cùng chạy `monapay webhooks test` và báo lại IP/domain, service ID, kết quả HTTP cùng chi phí giờ từ response; không tự tạo database, không in secret, không dùng endpoint ngoài guide và dừng hỏi tôi nếu gặp 402, quota 409 hoặc cần nạp tiền.
+> Đọc `vibecloud_guide.md`, `DEPLOY-VIBECLOUD.md` và `.env_vibecloud` rồi deploy app bán hàng có thu tiền này trọn 5 bước: gọi đúng API `https://api.vibecloud.vn` để list package và tạo một LXC qua `POST /api/lxc`, poll `GET /api/jobs/:id` tới `succeeded`, SSH và deploy Next.js bằng Docker với volume bền vững cho JSON store, dùng `MONAPAY_CLIENT_ID` + `MONAPAY_CLIENT_SECRET` để lấy OAuth token, cấu hình webhook HMAC public `/api/webhooks/monapay`, cuối cùng chạy `monapay webhooks test` và báo lại IP/domain, service ID, kết quả HTTP cùng chi phí giờ từ response; không tự tạo database, không in secret, không dùng endpoint ngoài guide và dừng hỏi tôi nếu gặp 402, quota 409 hoặc cần nạp tiền.
 
 ## Dọn hạ tầng khi không dùng
 

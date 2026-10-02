@@ -5,11 +5,7 @@ const app = express();
 const orders = new Map([
   ['DH10234', { id: 'DH10234', amount: 2500000, status: 'pending', transactionCode: null }],
 ]);
-const monapay = new MonaPay({
-  username: process.env.MONAPAY_USERNAME,
-  password: process.env.MONAPAY_PASSWORD,
-  clientSecret: process.env.MONAPAY_CLIENT_SECRET,
-});
+const monapay = MonaPay.fromEnv();
 
 app.post('/webhooks/monapay', express.raw({ type: 'application/json', limit: '1mb' }), (request, response) => {
   const verified = verifyWebhook({
