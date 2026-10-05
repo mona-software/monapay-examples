@@ -1,22 +1,32 @@
 # Next.js App Router + MONA Pay
 
-MONA Pay là API ngân hàng và dịch vụ xác nhận thanh toán tự động của The MONA Group, giúp doanh nghiệp Việt Nam nhận và xác nhận tiền chuyển khoản theo thời gian thực qua tài khoản ảo (VA), VietQR, webhook và Telegram — thiết kế để cả lập trình viên lẫn AI agent tích hợp trong vài phút.
+A Next.js App Router project with route handlers that create a VietQR for an order and confirm payment through a verified MONA Pay webhook.
 
-## Chạy trong 5 phút
+## Run
 
 ```bash
 cp .env.example .env.local
-npm install
+npm install @monapay/node@latest
 npm run dev
 curl -X POST http://localhost:3000/api/orders/DH10234/qr
 ```
 
-Route webhook ở `/api/monapay/webhook` đọc `request.arrayBuffer()` trước khi parse JSON. `lib/orders.js` chỉ là kho đơn in-memory minh họa; khi lên production, anh chị cần transaction database và unique constraint trên `transaction_code`.
+`package.json` points `@monapay/node` at `file:../../sdk/node`, a path that does not exist in this repository. `npm install @monapay/node@latest` replaces it with the published SDK and installs the other dependencies.
 
-Mở tunnel tới port `3000`, sau đó từ repo chạy:
+## How it works
+
+- `app/api/orders/[id]/qr/route.js` creates a dynamic VietQR. Order `DH10234` is preloaded.
+- `app/api/monapay/webhook/route.js` reads `request.arrayBuffer()` before parsing JSON, so the signature is checked over the raw body. It finds the order from a `DH<number>` code in the transfer description.
+- `lib/orders.js` is an in-memory order store for illustration. In production, use a database transaction and a unique constraint on `transaction_code`.
+
+## Test the webhook
+
+Open a tunnel to port `3000`, then:
 
 ```bash
 monapay webhooks test --url https://YOUR-TUNNEL.example/api/monapay/webhook
 ```
 
-Tài liệu: https://monapay.vn/docs
+Documentation: https://monapay.vn/docs
+
+**MONA Pay is part of MONA Cloud by The MONA Group.**

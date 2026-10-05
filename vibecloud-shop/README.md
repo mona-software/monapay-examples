@@ -1,67 +1,62 @@
-# Bếp Gọn — shop Next.js thu tiền qua MONA Pay trên VibeCloud
+# Bếp Gọn: Next.js shop with MONA Pay
 
-Template này minh họa trọn luồng của một app bán hàng có thu tiền: khách chọn sản phẩm, server tạo đơn và gọi MONA Pay để sinh VietQR động, trang thanh toán poll trạng thái, webhook có chữ ký HMAC đánh dấu đơn đã trả. Không có secret nào đi xuống trình duyệt.
+A small Next.js storefront template that takes payment through MONA Pay: the customer picks a product, the server creates an order and asks MONA Pay for a dynamic VietQR, the payment page polls the order status, and an HMAC-signed webhook marks the order paid. No secret reaches the browser.
 
-MONA Pay là API ngân hàng và dịch vụ xác nhận thanh toán tự động của The MONA Group, giúp doanh nghiệp Việt Nam nhận và xác nhận tiền chuyển khoản theo thời gian thực qua tài khoản ảo (VA), VietQR, webhook và Telegram — thiết kế để cả lập trình viên lẫn AI agent tích hợp trong vài phút. MONA Pay miễn phí hoàn toàn.
+## What is included
 
-## Combo triển khai
+- Next.js App Router; every route handler is plain `.js`, so `node --check` works on all files.
+- Pages: product list (`/`), product page (`/san-pham/[slug]`) and payment page (`/thanh-toan/[id]`).
+- API routes: `POST /api/orders` creates an order and its QR, `GET /api/orders/:id` returns the order status, `GET /api/orders/:id/qr` returns the QR as PNG, `POST /api/webhooks/monapay` receives the webhook.
+- A JSON order store written atomically to `data/orders.json` (`ORDER_STORE_PATH`); writes are serialized within one Node process.
+- A dependency-free PNG renderer for the VietQR/EMVCo `qr_data_url` string returned by the API.
+- The webhook reads the raw body and verifies `X-Mona-Timestamp` and `X-Mona-Signature` with a 300-second tolerance. The official test payload `DUMMY123` gets HTTP 200 without touching any order.
+- Deduplication by `transaction_code`, an exact `amount` check, and order matching by `account_number` first, then `order_id`, then the order ID in the description.
+- The payment page polls `GET /api/orders/:id` every 2.5 seconds.
 
-- **VibeCloud (hạ tầng):** chạy VPS và tính tiền theo giờ.
-- **MONA Pay (thu tiền):** tạo VietQR, nhận webhook xác nhận giao dịch.
-- **Mona.Host (domain/mail):** dùng domain public cho storefront và email theo tên miền khi cần.
+A JSON file suits a demo or a single container. With several replicas, use a database with a real unique constraint on `transaction_code` and a transaction when changing the order status.
 
-Theo bảng giá VibeCloud công bố, kiểm ngày **29/08/2026**: CPU 250đ/core·giờ, RAM 150đ/GB·giờ, Disk 15đ/GB·giờ. Luôn kiểm tra lại `GET https://api.vibecloud.vn/api/prices` trước khi tạo hạ tầng; template không cam kết một mức giá cố định ngoài cơ chế tính tiền theo giờ.
+## Run locally
 
-## Có gì trong template
-
-- Next.js App Router, toàn bộ route handler dùng `.js` để chạy được `node --check`.
-- SDK `@monapay/node` lấy từ `file:../../sdk/node`, không dùng bản tải ngoài trong repo.
-- Store JSON ghi file nguyên tử tại `data/orders.json`; mutation được tuần tự hóa trong một Node process.
-- QR PNG zero-dependency từ chuỗi `qr_data_url` VietQR/EMVCo mà API trả về.
-- Webhook `/api/webhooks/monapay` đọc raw body, verify `X-Mona-Timestamp` và `X-Mona-Signature`, giới hạn lệch 300 giây.
-- Payload test chính thức `DUMMY123` được trả HTTP 200 nhưng không chạm vào đơn hàng.
-- Chống xử lý trùng bằng `transaction_code`, kiểm đúng `amount`, ưu tiên khớp đơn qua `account_number`.
-- Poll trạng thái đơn qua `GET /api/orders/:id` mỗi 2,5 giây.
-
-JSON file phù hợp demo hoặc một container đơn lẻ. Khi chạy nhiều replica, thay bằng database có unique constraint thật trên `transaction_code` và transaction khi đổi trạng thái đơn.
-
-## Chạy local
-
-Yêu cầu Node.js 20 trở lên. Từ thư mục này:
+Requires Node.js 20 or later.
 
 ```bash
 cp .env.example .env.local
-# điền credential MONA Pay và thông tin QR ACB trong .env.local
-npm install
+# fill in the MONA Pay credentials and ACB QR settings in .env.local
+npm install @monapay/node@latest
 npm run dev
 ```
 
-Mở `http://localhost:3000`. Việc tạo đơn gọi API production và tạo VietQR thật; không dùng tài khoản smoke test để tạo VA hoặc QR thật.
+`package.json` points `@monapay/node` at `file:../../sdk/node`, a path that does not exist in this repository. `npm install @monapay/node@latest` replaces it with the published SDK and installs the other dependencies.
 
-## Gate
+Open `http://localhost:3000`. Creating an order calls the production API and creates a real VietQR, so do not use a smoke-test account to create real VAs or QR codes.
+
+## Configuration
+
+Copy [`.env.example`](.env.example). The credentials have different roles:
+
+- `MONAPAY_CLIENT_ID`: the API key ID from the dashboard, used with the client secret to obtain a Bearer token.
+- `MONAPAY_CLIENT_SECRET`: the secret generated once (`POST /api/v1/client-keys/generate`), used for write requests.
+- `MONAPAY_WEBHOOK_SECRET`: a secret you generate (at least 32 random characters), used by MONA Pay to sign and by the app to verify webhooks.
+- `MONAPAY_OWNER_NUMBER`, `MONAPAY_OWNER_TYPE`, `MONAPAY_MERCHANT_ID`, `MONAPAY_TERMINAL_ID`, `MONAPAY_VA_PREFIX`, `MONAPAY_BENEFICIARY_NAME`: ACB QR settings.
+
+Do not commit `.env.local`, `.env_vibecloud` or `data/orders.json`.
+
+## Tests
 
 ```bash
 npm run gate
 ```
 
-Gate chạy `node --check` cho mọi file `.js`/`.mjs`, sau đó chạy `node --test` cho store, idempotency, HMAC và QR. Test QR dùng `zbarimg` nếu máy có sẵn để giải mã PNG về đúng payload; nếu không có, test này chỉ kiểm cấu trúc matrix và PNG.
+`gate` runs `node --check` on every `.js`/`.mjs` file in `app`, `lib` and `test`, then `node --test` for the store, idempotency, HMAC and QR. The QR test decodes the PNG with `zbarimg` when it is installed; otherwise it checks only the matrix and the PNG structure.
 
-## Biến môi trường
+## Deploy to VibeCloud
 
-Sao chép [`.env.example`](.env.example). Các credential có vai trò khác nhau:
+Follow [DEPLOY-VIBECLOUD.md](DEPLOY-VIBECLOUD.md): create a VPS through the VibeCloud API, deploy with the included `Dockerfile`, create a MONA Pay API key, configure the public webhook and test it with the MONA Pay CLI. [`vibecloud_guide.md`](vibecloud_guide.md) is the VibeCloud automation guide those steps are based on. Check the current packages and prices through the VibeCloud API before creating infrastructure.
 
-- `MONAPAY_CLIENT_ID`: mã API key tạo ở dashboard, dùng cùng client secret để lấy Bearer token.
-- `MONAPAY_CLIENT_SECRET`: secret sinh một lần qua `POST /api/v1/client-keys/generate`, dùng cho lệnh ghi API.
-- `MONAPAY_WEBHOOK_SECRET`: secret do shop tự sinh, dùng để MONA Pay ký và app verify webhook.
+## QR encoder license
 
-Không commit `.env.local`, `.env_vibecloud` hoặc `data/orders.json`.
+`lib/qrcode.js` reuses the dependency-free QR encoder from the MONA Pay CLI. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for the Project Nayuki attribution and MIT License.
 
-## Deploy VibeCloud
+Documentation: https://monapay.vn/docs
 
-Đọc [DEPLOY-VIBECLOUD.md](DEPLOY-VIBECLOUD.md) rồi làm đúng 5 bước. [`vibecloud_guide.md`](vibecloud_guide.md) là bản sao byte-for-byte từ nguồn `/Users/themon/VibeCloud/mui-frontend/public/llms.txt` (VibeCloud Automation Guide), không chỉnh nội dung hoặc endpoint.
-
-Tài liệu MONA Pay: https://monapay.vn/docs · llms: https://monapay.vn/llms.txt · Hotline 1900 636 648 · info@themona.global.
-
-## Bản quyền QR encoder
-
-`lib/qrcode.js` tái sử dụng implementation zero-dependency đã có tại `cli/src/qrcode.js` trong chính monorepo. Xem [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) cho ghi nhận Project Nayuki và giấy phép MIT.
+**MONA Pay is part of MONA Cloud by The MONA Group.**

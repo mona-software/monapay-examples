@@ -1,8 +1,8 @@
 # Spring Boot + MONA Pay
 
-MONA Pay là API ngân hàng và dịch vụ xác nhận thanh toán tự động của The MONA Group, giúp doanh nghiệp Việt Nam nhận và xác nhận tiền chuyển khoản theo thời gian thực qua tài khoản ảo (VA), VietQR, webhook và Telegram — thiết kế để cả lập trình viên lẫn AI agent tích hợp trong vài phút.
+A Spring Boot 3 app that creates a VietQR for an order and confirms payment through a verified MONA Pay webhook, without an SDK.
 
-## Chạy trong 5 phút
+## Run
 
 ```bash
 cp .env.example .env && set -a && . ./.env && set +a
@@ -10,12 +10,20 @@ mvn spring-boot:run
 curl -X POST http://localhost:8080/orders/DH10234/qr
 ```
 
-Java dùng `javax.crypto.Mac` trực tiếp để kiểm HMAC trên `byte[]` raw body, kiểm timestamp 5 phút và so sánh constant-time bằng `MessageDigest.isEqual`. `MonaPayClient` gọi login và QR API qua `java.net.http.HttpClient`, không cần SDK.
+## How it works
 
-Map đơn trong ví dụ chỉ phù hợp local; khi lên production, anh chị cần database transaction và unique constraint trên `transaction_code`.
+- `MonaPayClient` gets an OAuth token and calls the QR API with `java.net.http.HttpClient`. It calls `https://api.monapay.vn` directly.
+- `WebhookController` exposes `POST /orders/{id}/qr` and `POST /webhooks/monapay`. The webhook checks HMAC-SHA256 over the raw `byte[]` body with `javax.crypto.Mac`, checks the timestamp within 5 minutes and compares in constant time with `MessageDigest.isEqual`.
+- The webhook finds the order from a `DH<number>` code in the transfer description.
+
+The order map is only for local use. In production, use a database transaction and a unique constraint on `transaction_code`.
+
+## Test the webhook
 
 ```bash
 monapay webhooks test --url https://YOUR-TUNNEL.example/webhooks/monapay
 ```
 
-Tài liệu: https://monapay.vn/docs
+Documentation: https://monapay.vn/docs
+
+**MONA Pay is part of MONA Cloud by The MONA Group.**

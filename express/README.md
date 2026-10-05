@@ -1,23 +1,35 @@
 # Express + MONA Pay
 
-MONA Pay là API ngân hàng và dịch vụ xác nhận thanh toán tự động của The MONA Group, giúp doanh nghiệp Việt Nam nhận và xác nhận tiền chuyển khoản theo thời gian thực qua tài khoản ảo (VA), VietQR, webhook và Telegram — thiết kế để cả lập trình viên lẫn AI agent tích hợp trong vài phút.
+An Express app that creates a VietQR for an order and confirms payment through a verified MONA Pay webhook.
 
-## Chạy trong 5 phút
+## Run
 
 ```bash
 cp .env.example .env
 set -a; . ./.env; set +a
-npm install
+npm install @monapay/node@latest
 npm start
 curl -X POST http://localhost:3000/orders/DH10234/qr
 ```
 
-Middleware `express.raw()` được gắn trước `express.json()` để chữ ký luôn được tính trên đúng raw body. Khi lên production, anh chị thay Map đơn bằng database với unique constraint trên `transaction_code`.
+`package.json` points `@monapay/node` at `file:../../sdk/node`, a path that does not exist in this repository. `npm install @monapay/node@latest` replaces it with the published SDK and installs the other dependencies.
 
-Mở tunnel tới port `3000`, rồi test:
+## How it works
+
+- `POST /orders/:id/qr` creates a dynamic VietQR for the order. Order `DH10234` (2,500,000 VND) is preloaded.
+- `POST /webhooks/monapay` uses `express.raw()` (limit 1 MB) on that route, registered before the global `express.json()`, so the signature is always computed over the exact raw body.
+- The webhook finds the order from `order_id` in the payload, or from a `DH<number>` code in the transfer description. It rejects an amount mismatch with HTTP 409 and ignores a repeated `transaction_code`.
+
+Orders live in a `Map`. In production, use a database with a unique constraint on `transaction_code`.
+
+## Test the webhook
+
+Open a tunnel to port `3000`, then:
 
 ```bash
 monapay webhooks test --url https://YOUR-TUNNEL.example/webhooks/monapay
 ```
 
-Tài liệu: https://monapay.vn/docs
+Documentation: https://monapay.vn/docs
+
+**MONA Pay is part of MONA Cloud by The MONA Group.**

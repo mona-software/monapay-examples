@@ -1,22 +1,34 @@
-# Ví dụ tích hợp MONA Pay
+# MONA Pay examples
 
-MONA Pay là API ngân hàng và dịch vụ xác nhận thanh toán tự động của The MONA Group, giúp doanh nghiệp Việt Nam nhận và xác nhận tiền chuyển khoản theo thời gian thực qua tài khoản ảo (VA), VietQR, webhook và Telegram — thiết kế để cả lập trình viên lẫn AI agent tích hợp trong vài phút.
+Small, runnable apps that show how to accept bank transfers with MONA Pay in common web frameworks.
 
-Các ví dụ đều theo một flow: tạo VietQR động cho đơn, nhận webhook từ raw body, xác thực timestamp + HMAC-SHA256, đối chiếu số tiền rồi đánh dấu đơn đã thanh toán đúng một lần bằng `transaction_code`.
+Each framework example follows the same flow: create a dynamic VietQR for an order, receive the webhook from the raw body, verify the timestamp and HMAC-SHA256 signature, check the amount, then mark the order paid exactly once using `transaction_code`.
 
-| Framework | Runtime | Ví dụ |
+| Folder | Stack | What it shows |
 | --- | --- | --- |
-| Next.js App Router | Node.js | [nextjs-app-router](./nextjs-app-router/) |
-| Express | Node.js | [express](./express/) |
-| NestJS | Node.js/TypeScript | [nestjs](./nestjs/) |
-| Laravel | PHP | [laravel](./laravel/) |
-| Django | Python | [django](./django/) |
-| FastAPI | Python | [fastapi](./fastapi/) |
-| Spring Boot | Java | [spring-boot](./spring-boot/) |
-| Go `net/http` | Go | [go](./go/) |
+| [nextjs-app-router](./nextjs-app-router/) | Next.js App Router (Node.js) | QR route and webhook route handler with an in-memory order store |
+| [express](./express/) | Express (Node.js) | QR endpoint and raw-body webhook with an in-memory order store |
+| [nestjs](./nestjs/) | NestJS (TypeScript) | Controller using Nest's `rawBody` option and an in-memory orders service |
+| [laravel](./laravel/) | Laravel 11 (PHP) | Route, controller, webhook middleware and migration to copy into a Laravel app |
+| [django](./django/) | Django 5 (Python) | Views and model with SQLite, `select_for_update()` and a unique transaction code |
+| [fastapi](./fastapi/) | FastAPI (Python) | Single-file app with SQLite and `BEGIN IMMEDIATE` |
+| [spring-boot](./spring-boot/) | Spring Boot 3 (Java) | Plain `java.net.http` client and `javax.crypto.Mac` verification, no SDK |
+| [go](./go/) | Go `net/http` | Standard library only, in-memory orders under a mutex |
+| [vibecloud-billing](./vibecloud-billing/) | Python + FastAPI | Prepaid top-up QR per user and a webhook that credits a wallet once |
+| [vibecloud-shop](./vibecloud-shop/) | Next.js 16 | A small storefront: products, orders, QR payment page with polling, signed webhook |
 
-Code lưu đơn bằng bộ nhớ hoặc SQLite để dễ chạy trong 5 phút. Khi lên production, anh chị thay phần repository bằng database thật, đặt unique constraint cho `transaction_code`, dùng HTTPS và chỉ đổi trạng thái sau khi khớp cả đơn lẫn số tiền.
+## Before you run an example
 
-Tài liệu đầy đủ: https://monapay.vn/docs · AI/LLM: https://monapay.vn/llms.txt
+- You need a MONA Pay API key (client ID and client secret), a webhook secret and the ACB QR settings (owner number, owner type, merchant ID, terminal ID, VA prefix, beneficiary name). Each folder has a `.env.example` listing them.
+- To receive webhooks locally, expose the port with a tunnel (for example `cloudflared tunnel --url http://localhost:3000`) and send a test webhook with the [MONA Pay CLI](https://github.com/mona-software/monapay-cli): `monapay webhooks test --url https://YOUR-TUNNEL.example/webhooks/monapay`.
+- Several examples still point the SDK at a monorepo path (`../../sdk/...`) that is not in this repository; each README shows how to install the published SDK instead.
 
-**MONA Pay thuộc bộ MONA Cloud của The MONA Group.**
+## Going to production
+
+The examples keep orders in memory, in SQLite or in a JSON file so they start quickly. In production, replace that storage with a real database, put a unique constraint on `transaction_code`, serve the webhook over HTTPS, and change an order's status only after both the order and the amount match.
+
+Documentation: https://monapay.vn/docs
+
+To report a vulnerability, see [SECURITY.md](./SECURITY.md).
+
+**MONA Pay is part of MONA Cloud by The MONA Group.**

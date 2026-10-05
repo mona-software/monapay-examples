@@ -1,21 +1,34 @@
 # FastAPI + MONA Pay
 
-MONA Pay là API ngân hàng và dịch vụ xác nhận thanh toán tự động của The MONA Group, giúp doanh nghiệp Việt Nam nhận và xác nhận tiền chuyển khoản theo thời gian thực qua tài khoản ảo (VA), VietQR, webhook và Telegram — thiết kế để cả lập trình viên lẫn AI agent tích hợp trong vài phút.
+A single-file FastAPI app that creates a VietQR for an order and confirms payment through a verified MONA Pay webhook.
 
-## Chạy trong 5 phút
+## Run
 
 ```bash
 python3 -m venv .venv && . .venv/bin/activate
-pip install -r requirements.txt
+pip install monapay "fastapi>=0.110,<1.0" "uvicorn>=0.29,<1.0"
 cp .env.example .env && set -a && . ./.env && set +a
 uvicorn main:app --reload
 curl -X POST http://127.0.0.1:8000/orders/DH10234/qr
 ```
 
-Ví dụ tự tạo SQLite và đơn `DH10234`. Webhook đọc `await request.body()`, dùng `BEGIN IMMEDIATE`, đối chiếu số tiền và unique `payment_transaction_code` trước khi cập nhật. Khi lên production, tụi em khuyên anh chị chuyển sang database server nhưng giữ nguyên các ràng buộc này.
+`requirements.txt` points the SDK at `-e ../../sdk/python`, a path that does not exist in this repository, so the command above installs the published `monapay` package from PyPI instead.
+
+## How it works
+
+- On start the app creates a SQLite database (`ORDERS_DB`, default `orders.sqlite3`) with order `DH10234`.
+- `POST /orders/{order_id}/qr` creates a dynamic VietQR.
+- `POST /webhooks/monapay` reads `await request.body()`, verifies the signature, opens a `BEGIN IMMEDIATE` transaction, checks the amount and stores `payment_transaction_code`, which is unique.
+- The webhook finds the order from `order_id` in the payload, or from a `DH<number>` code in the transfer description.
+
+In production, move to a database server but keep the same constraints.
+
+## Test the webhook
 
 ```bash
 monapay webhooks test --url https://YOUR-TUNNEL.example/webhooks/monapay
 ```
 
-Tài liệu: https://monapay.vn/docs
+Documentation: https://monapay.vn/docs
+
+**MONA Pay is part of MONA Cloud by The MONA Group.**

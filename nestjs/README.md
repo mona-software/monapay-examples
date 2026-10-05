@@ -1,23 +1,33 @@
 # NestJS + MONA Pay
 
-MONA Pay là API ngân hàng và dịch vụ xác nhận thanh toán tự động của The MONA Group, giúp doanh nghiệp Việt Nam nhận và xác nhận tiền chuyển khoản theo thời gian thực qua tài khoản ảo (VA), VietQR, webhook và Telegram — thiết kế để cả lập trình viên lẫn AI agent tích hợp trong vài phút.
+A NestJS app that creates a VietQR for an order and confirms payment through a verified MONA Pay webhook.
 
-## Chạy trong 5 phút
-
-Ví dụ giữ đúng cấu trúc NestJS và bật `{ rawBody: true }`. Repo không cài Nest sẵn; khi chạy ở dự án có mạng, anh chị cài package rồi khởi động:
+## Run
 
 ```bash
 cp .env.example .env
 set -a; . ./.env; set +a
-npm install
+npm install @monapay/node@latest
 npm run start:dev
 curl -X POST http://localhost:3000/orders/DH10234/qr
 ```
 
-`OrdersService` dùng Map để minh họa. Production cần database transaction, unique constraint trên `transaction_code` và so khớp `amount` trước khi đổi trạng thái.
+`package.json` points `@monapay/node` at `file:../../sdk/node`, a path that does not exist in this repository. `npm install @monapay/node@latest` replaces it with the published SDK and installs the other dependencies.
+
+## How it works
+
+- The app is created with `NestFactory.create(AppModule, { rawBody: true })`, so the webhook handler can verify the signature over `request.rawBody`; a missing raw body returns HTTP 400.
+- `PaymentsController` exposes `POST /orders/:id/qr` and `POST /webhooks/monapay`. Order `DH10234` is preloaded.
+- The webhook finds the order from `order_id` in the payload, or from a `DH<number>` code in the transfer description.
+
+`OrdersService` keeps orders in a `Map` for illustration. In production, use a database transaction, a unique constraint on `transaction_code`, and compare `amount` before changing the status.
+
+## Test the webhook
 
 ```bash
 monapay webhooks test --url https://YOUR-TUNNEL.example/webhooks/monapay
 ```
 
-Tài liệu: https://monapay.vn/docs
+Documentation: https://monapay.vn/docs
+
+**MONA Pay is part of MONA Cloud by The MONA Group.**

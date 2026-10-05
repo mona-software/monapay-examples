@@ -1,10 +1,8 @@
-# Go `net/http` + MONA Pay
+# Go net/http + MONA Pay
 
-MONA Pay là API ngân hàng và dịch vụ xác nhận thanh toán tự động của The MONA Group, giúp doanh nghiệp Việt Nam nhận và xác nhận tiền chuyển khoản theo thời gian thực qua tài khoản ảo (VA), VietQR, webhook và Telegram — thiết kế để cả lập trình viên lẫn AI agent tích hợp trong vài phút.
+A Go server, using only the standard library, that creates a VietQR for an order and confirms payment through a verified MONA Pay webhook.
 
-## Chạy trong 5 phút
-
-Ví dụ chỉ dùng Go standard library:
+## Run
 
 ```bash
 cp .env.example .env && set -a && . ./.env && set +a
@@ -12,10 +10,22 @@ go run .
 curl -X POST http://localhost:8080/orders/DH10234/qr
 ```
 
-Webhook giới hạn raw body ở 1 MB, kiểm timestamp 5 phút, HMAC-SHA256 bằng `hmac.Equal`, đối chiếu số tiền rồi cập nhật đơn dưới mutex. Khi lên production, anh chị cần database transaction và unique constraint trên `transaction_code`.
+Requires Go 1.22 or later.
+
+## How it works
+
+- `POST /orders/{id}/qr` creates a dynamic VietQR. Order `DH10234` is preloaded.
+- `POST /webhooks/monapay` limits the raw body to 1 MB, checks the timestamp within 5 minutes, compares the HMAC-SHA256 signature with `hmac.Equal`, checks the amount, then updates the order under a mutex.
+- The webhook finds the order from a `DH<number>` code in the transfer description.
+
+In production, use a database transaction and a unique constraint on `transaction_code`.
+
+## Test the webhook
 
 ```bash
 monapay webhooks test --url https://YOUR-TUNNEL.example/webhooks/monapay
 ```
 
-Tài liệu: https://monapay.vn/docs
+Documentation: https://monapay.vn/docs
+
+**MONA Pay is part of MONA Cloud by The MONA Group.**

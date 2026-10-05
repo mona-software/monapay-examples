@@ -1,23 +1,23 @@
-# VibeCloud thu tiền theo giờ qua MONA Pay
+# VibeCloud prepaid top-up with MONA Pay
 
-Mẫu này tạo VietQR nạp trước cho từng user, nhận webhook MONA Pay rồi cộng credit đúng một lần. Việc trừ credit theo giờ vẫn thuộc hệ thống billing của VibeCloud và không có endpoint VibeCloud giả trong ví dụ.
+A Python example for a pay-as-you-go platform: it creates a prepaid top-up VietQR for each user, receives the MONA Pay webhook and credits the user's wallet exactly once. Charging the credit by the hour stays in the platform's own billing system and is not part of this example.
 
-## Ai làm gì
+## Components
 
-| Thành phần | Trách nhiệm |
-|---|---|
-| VibeCloud | Chọn `user_id`, số tiền nạp; gọi `topup_qr.py`; sau đó trừ credit theo giờ. |
-| MONA Pay | Tạo VietQR, nhận giao dịch ngân hàng và gửi webhook HMAC. |
-| `webhook_server.py` | Kiểm chữ ký + timestamp, khớp top-up, chống trùng `transaction_code`, gọi `credit_wallet`. |
-| SQLite demo | Giữ top-up intent, số dư và ledger idempotent. TODO: VibeCloud thay bằng wallet/ledger nội bộ. |
+| Part | Responsibility |
+| --- | --- |
+| Platform (VibeCloud) | Chooses `user_id` and the top-up amount, runs `topup_qr.py`, later deducts credit by the hour |
+| MONA Pay | Creates the VietQR, receives the bank transaction and sends the HMAC-signed webhook |
+| `webhook_server.py` | Verifies signature and timestamp, matches the top-up, deduplicates by `transaction_code`, calls `credit_wallet` |
+| SQLite demo | Holds top-up intents, balances and an idempotent credit ledger; replace it with your internal wallet/ledger |
 
-## Chạy mẫu
+## Run
 
 ```bash
 export MONAPAY_CLIENT_ID="client-id"
 export MONAPAY_CLIENT_SECRET="client-secret"
 export MONAPAY_BASE_URL="https://api.monapay.vn"
-export MONAPAY_WEBHOOK_SECRET="hmac-secret-rieng"
+export MONAPAY_WEBHOOK_SECRET="your-own-hmac-secret"
 export MONAPAY_OWNER_NUMBER="123456789"
 export MONAPAY_OWNER_TYPE="ORG"
 export MONAPAY_MERCHANT_ID="MC00012345"
@@ -30,9 +30,16 @@ uvicorn webhook_server:app --host 0.0.0.0 --port 8000
 python topup_qr.py --user-id user_123 --amount 200000
 ```
 
-Đăng ký URL HTTPS public `https://billing.example/webhooks/monapay` trong cấu hình webhook MONA Pay. Mỗi QR có description `VCLOUD_<mã>` được lưu với `user_id`; webhook phải có đúng description và amount đó mới cộng credit.
+Both scripts share the SQLite file set by `VIBECLOUD_BILLING_DB` (default `vibecloud_billing.sqlite3`).
 
-## cURL tương đương
+Register a public HTTPS URL such as `https://billing.example/webhooks/monapay` in your MONA Pay webhook config.
+
+## How it works
+
+- `topup_qr.py` generates a description `VCLOUD_<16 hex characters>`, stores it with `user_id` and amount as a top-up intent, then requests a QR with an idempotency key. If the request fails, the intent is deleted.
+- `webhook_server.py` (`POST /webhooks/monapay`) credits the wallet only when the webhook carries that description and the same amount. It returns 404 for an unknown description, 409 for an amount mismatch, and `{"ok": true, "duplicate": true}` for a repeated `transaction_code`.
+
+## Equivalent cURL
 
 ```bash
 TOKEN=$(curl -sS -X POST "$MONAPAY_BASE_URL/api/v1/oauth/token" \
@@ -47,4 +54,8 @@ curl -sS -X POST "$MONAPAY_BASE_URL/api/v1/qr/generate" \
   -d '{"ownerNumber":"123456789","ownerType":"ORG","merchantId":"MC00012345","terminalId":"TM0001","orderId":"VCLOUD_0123456789ABCDEF","virtualAccountPrefix":"MONA","beneficiaryName":"CONG TY ABC","amount":200000,"description":"VCLOUD_0123456789ABCDEF"}'
 ```
 
-Không tự gửi cURL giả vào webhook nếu chưa ký đúng raw body. MONA Pay gửi `X-Mona-Timestamp` và `X-Mona-Signature: sha256=<hex>`; server chỉ chấp nhận timestamp lệch tối đa 300 giây.
+Do not send hand-made cURL requests to the webhook unless they are signed over the exact raw body. MONA Pay sends `X-Mona-Timestamp` and `X-Mona-Signature: sha256=<hex>`; the server accepts a timestamp at most 300 seconds off.
+
+Documentation: https://monapay.vn/docs
+
+**MONA Pay is part of MONA Cloud by The MONA Group.**
