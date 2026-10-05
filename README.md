@@ -18,3 +18,5 @@ Các ví dụ đều theo một flow: tạo VietQR động cho đơn, nhận web
 Code lưu đơn bằng bộ nhớ hoặc SQLite để dễ chạy trong 5 phút. Khi lên production, anh chị thay phần repository bằng database thật, đặt unique constraint cho `transaction_code`, dùng HTTPS và chỉ đổi trạng thái sau khi khớp cả đơn lẫn số tiền.
 
 Tài liệu đầy đủ: https://monapay.vn/docs · AI/LLM: https://monapay.vn/llms.txt
+
+**MONA Pay thuộc bộ MONA Cloud của The MONA Group.**
