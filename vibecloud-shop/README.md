@@ -22,11 +22,9 @@ Requires Node.js 20 or later.
 ```bash
 cp .env.example .env.local
 # fill in the MONA Pay credentials and ACB QR settings in .env.local
-npm install @monapay/node@latest
+npm install
 npm run dev
 ```
-
-`package.json` points `@monapay/node` at `file:../../sdk/node`, a path that does not exist in this repository. `npm install @monapay/node@latest` replaces it with the published SDK and installs the other dependencies.
 
 Open `http://localhost:3000`. Creating an order calls the production API and creates a real VietQR, so do not use a smoke-test account to create real VAs or QR codes.
 
@@ -49,9 +47,16 @@ npm run gate
 
 `gate` runs `node --check` on every `.js`/`.mjs` file in `app`, `lib` and `test`, then `node --test` for the store, idempotency, HMAC and QR. The QR test decodes the PNG with `zbarimg` when it is installed; otherwise it checks only the matrix and the PNG structure.
 
-## Deploy to VibeCloud
+## Deploy
 
-Follow [DEPLOY-VIBECLOUD.md](DEPLOY-VIBECLOUD.md): create a VPS through the VibeCloud API, deploy with the included `Dockerfile`, create a MONA Pay API key, configure the public webhook and test it with the MONA Pay CLI. [`vibecloud_guide.md`](vibecloud_guide.md) is the VibeCloud automation guide those steps are based on. Check the current packages and prices through the VibeCloud API before creating infrastructure.
+Build and run the container from this folder:
+
+```bash
+docker build -t vibecloud-shop .
+docker run --env-file .env.local -p 3000:3000 vibecloud-shop
+```
+
+To deploy on MONA Cloud (formerly VibeCloud), give your AI agent [`vibecloud_guide.md`](vibecloud_guide.md); it describes the API steps to create a server and deploy the included `Dockerfile`. Then configure the public webhook URL in MONA Pay.
 
 ## QR encoder license
 

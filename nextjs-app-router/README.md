@@ -6,12 +6,10 @@ A Next.js App Router project with route handlers that create a VietQR for an ord
 
 ```bash
 cp .env.example .env.local
-npm install @monapay/node@latest
+npm install
 npm run dev
 curl -X POST http://localhost:3000/api/orders/DH10234/qr
 ```
-
-`package.json` points `@monapay/node` at `file:../../sdk/node`, a path that does not exist in this repository. `npm install @monapay/node@latest` replaces it with the published SDK and installs the other dependencies.
 
 ## How it works
 

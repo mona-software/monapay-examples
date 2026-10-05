@@ -1,2 +1,2 @@
--e ../../sdk/python
+monapay>=0.5,<1.0
 Django>=5.0,<6.0

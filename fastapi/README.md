@@ -6,13 +6,11 @@ A single-file FastAPI app that creates a VietQR for an order and confirms paymen
 
 ```bash
 python3 -m venv .venv && . .venv/bin/activate
-pip install monapay "fastapi>=0.110,<1.0" "uvicorn>=0.29,<1.0"
+pip install -r requirements.txt
 cp .env.example .env && set -a && . ./.env && set +a
 uvicorn main:app --reload
 curl -X POST http://127.0.0.1:8000/orders/DH10234/qr
 ```
-
-`requirements.txt` points the SDK at `-e ../../sdk/python`, a path that does not exist in this repository, so the command above installs the published `monapay` package from PyPI instead.
 
 ## How it works
 

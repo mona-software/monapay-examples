@@ -7,7 +7,7 @@
     "start:dev": "nest start --watch"
   },
   "dependencies": {
-    "@monapay/node": "file:../../sdk/node",
+    "@monapay/node": "^0.5.2",
     "@nestjs/common": "latest",
     "@nestjs/core": "latest",
     "@nestjs/platform-express": "latest",

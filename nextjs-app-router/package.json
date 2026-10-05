@@ -6,7 +6,7 @@
     "dev": "next dev"
   },
   "dependencies": {
-    "@monapay/node": "file:../../sdk/node",
+    "@monapay/node": "^0.5.2",
     "next": "latest",
     "react": "latest",
     "react-dom": "latest"

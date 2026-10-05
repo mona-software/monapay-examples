@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
 import test from 'node:test';
 
-import { verifyWebhook } from '../../../sdk/node/dist/index.js';
+import { verifyWebhook } from '@monapay/node';
 
 function signature(rawBody, timestamp, secret) {
   return `sha256=${createHmac('sha256', secret).update(`${timestamp}.${rawBody}`).digest('hex')}`;

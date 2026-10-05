@@ -21,7 +21,6 @@ Each framework example follows the same flow: create a dynamic VietQR for an ord
 
 - You need a MONA Pay API key (client ID and client secret), a webhook secret and the ACB QR settings (owner number, owner type, merchant ID, terminal ID, VA prefix, beneficiary name). Each folder has a `.env.example` listing them.
 - To receive webhooks locally, expose the port with a tunnel (for example `cloudflared tunnel --url http://localhost:3000`) and send a test webhook with the [MONA Pay CLI](https://github.com/mona-software/monapay-cli): `monapay webhooks test --url https://YOUR-TUNNEL.example/webhooks/monapay`.
-- Several examples still point the SDK at a monorepo path (`../../sdk/...`) that is not in this repository; each README shows how to install the published SDK instead.
 
 ## Going to production
 

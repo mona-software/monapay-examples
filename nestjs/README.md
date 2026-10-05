@@ -7,12 +7,10 @@ A NestJS app that creates a VietQR for an order and confirms payment through a v
 ```bash
 cp .env.example .env
 set -a; . ./.env; set +a
-npm install @monapay/node@latest
+npm install
 npm run start:dev
 curl -X POST http://localhost:3000/orders/DH10234/qr
 ```
-
-`package.json` points `@monapay/node` at `file:../../sdk/node`, a path that does not exist in this repository. `npm install @monapay/node@latest` replaces it with the published SDK and installs the other dependencies.
 
 ## How it works
 

@@ -12,7 +12,7 @@
     "gate": "npm run check:syntax && npm test"
   },
   "dependencies": {
-    "@monapay/node": "file:../../sdk/node",
+    "@monapay/node": "^0.5.2",
     "next": "16.1.4",
     "react": "19.2.3",
     "react-dom": "19.2.3"
